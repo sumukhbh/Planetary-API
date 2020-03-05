@@ -1,4 +1,4 @@
-A Simple API built using Flask to Manage planet information and discoveries.
+A Simple API built using Flask to manage planet information and discoveries.
 API Features:
 1. Add newly discovered planets to the database.
 2. Update existing planet data
