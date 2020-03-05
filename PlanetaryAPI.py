@@ -137,8 +137,69 @@ def retrieve_pwd(email:str):
     else:
         return jsonify(message="Email doesn't exist")
 
+# Method to fetch planet details #
+@app.route('/fetch_details/<int:planet_id>', methods=['GET'])
+def fetch_details(planet_id:int):
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if planet:
+        result = planet_schema.dump(planet)
+        return jsonify(result)
+    else:
+        return jsonify(message="Planet does not exist!"),404
 
+# Method to add new planets #
+@app.route('/add_planet', methods=['POST'])
+@jwt_required
+def add_planet():
+    planet_name = request.form['planet_name']
+    test_planet = Planet.query.filter_by(planet_name=planet_name).first()
+    if test_planet:
+        return jsonify("There is already a planet by that name"), 409
+    else:
+        planet_type = request.form['planet_type']
+        planet_star = request.form['planet_star']
+        planet_mass = float(request.form['planet_mass'])
+        planet_radius = float(request.form['planet_radius'])
+        planet_distance = float(request.form['planet_distance'])
 
+        new_planet = Planet(planet_name=planet_name,
+                            planet_type=planet_type,
+                            planet_star=planet_star,
+                            planet_mass=planet_mass,
+                            planet_radius=planet_radius,
+                           planet_distance=planet_distance)
+        database.session.add(new_planet)
+        database.session.commit()
+        return jsonify(message="You added a planet"), 201
+
+# Method to delete a planet #
+@app.route('/delete_planet/<int:planet_id>', methods=['DELETE'])
+def delete_planet(planet_id: int):
+    planet_delete = Planet.query.filter_by(planet_id=planet_id).first()
+    if planet_delete:
+        database.session.delete(planet_delete)
+        database.session.commit()
+        return jsonify(message="Planet deleted."), 202
+    else:
+        return jsonify(message="Planet does not exist"), 404
+
+# Method to update planet details #
+@app.route('/update_planet', methods=['PUT'])
+#@jwt_required
+def update_planet():
+    planet_id = int(request.form['planet_id'])
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if planet:
+        planet.planet_name = request.form['planet_name']
+        planet.planet_type = request.form['planet_type']
+        planet.planet_star = request.form['planet_star']
+        planet.planet_mass = float(request.form['planet_mass'])
+        planet.planet_radius = float(request.form['planet_radius'])
+        planet.planet_distance = float(request.form['planet_distance'])
+        database.session.commit()
+        return jsonify(message="Planet updated."), 202
+    else:
+        return jsonify(message="Planet does not exist."), 404
 
 # Creating database models #
 class User(database.Model):
