@@ -3,15 +3,25 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float
 import os
 from flask_marshmallow import Marshmallow
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+from flask_mail import Mail,Message
 
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'planets.db')
-
+app.config['JWT_SECRET_KEY'] = 'secret'
+app.config['MAIL_SERVER']='smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 2525
+app.config['MAIL_USERNAME'] = '20705b3089ae45'
+app.config['MAIL_PASSWORD'] = '23bef27c1c7ce8'
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
 
 database = SQLAlchemy(app)
 ma = Marshmallow(app)
+jwt = JWTManager(app)
+mail = Mail(app)
 
 # create database command #
 @app.cli.command('database_create')
@@ -99,6 +109,34 @@ def register():
         database.session.add(user)
         database.session.commit()
         return jsonify(message= "User registered successfully."),201
+
+# Authenticating user login requests #
+@app.route('/authenticate',methods=['POST'])
+def authenticate():
+    if request.is_json:
+        email = request.json['email']
+        password = request.json['password']
+    else:
+        email = request.form['email']
+        password = request.form['password']
+    test_user = User.query.filter_by(email=email,password=password).first()
+    if test_user:
+        access_token = create_access_token(identity=email)
+        return jsonify(message="Login Successful.",access_token=access_token)
+    else:
+        return jsonify(message="Login Failed.You have entered a incorrect username or password."),401
+
+# Method to retrieve password and send it to user email #
+@app.route('/retrieve_pwd/<string:email>', methods=['GET'])
+def retrieve_pwd(email:str):
+    user = User.query.filter_by(email=email).first()
+    if user:
+        message = Message("Your password is : "+ user.password, sender="admin@planetaryAPI.com", recipients=[email])
+        mail.send(message)
+        return jsonify(message="Password sent to "+ user.email)
+    else:
+        return jsonify(message="Email doesn't exist")
+
 
 
 
